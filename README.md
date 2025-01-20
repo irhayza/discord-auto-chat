@@ -31,4 +31,4 @@ auto send chat on discord specific channel, good for push rank level on MEE bot 
 
 ## Note
 
-if you want to see browser pop up , edit HEADLESS on .env to true
+if you want to see browser pop up , edit HEADLESS on .env to false
