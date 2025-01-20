@@ -35,13 +35,13 @@ export class PuppeterCore {
     await this.page.goto(url, { waitUntil: ["load", "networkidle2"] });
     logger.info(`Waiting For Discord QR Code`);
     const qrCodeSelector =
-      "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']"; // Use a generic selector for dynamic classes
+      "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']";
     await this.page.waitForSelector(qrCodeSelector);
     const qrCodeData = await this.page.evaluate((selector) => {
       const qrCodeElement = document.querySelector(selector);
       if (qrCodeElement) {
         const svg = qrCodeElement.innerHTML;
-        const base64 = btoa(unescape(svg));
+        const base64 = btoa(svg);
         const qrcode = "data:image/svg+xml;base64," + base64;
         return qrcode;
       }
@@ -69,6 +69,7 @@ export class PuppeterCore {
 
     if (qrValue) {
       logger.info("QR Code and Parsed! Displaying in terminal:");
+      logger.info(`Login URL : ${qrValue}`);
       await pageQRParser.close();
       qrcode.generate(qrValue, {
         small: false,
@@ -81,8 +82,10 @@ export class PuppeterCore {
       );
     }
 
-    logger.info("Waiting Qr Code Scanned");
-    await this.page.waitForRequest();
+    logger.info(
+      "Waiting Qr Code Scanned, If After Scan the bot not give a response, posible bot Facing Captcha Security"
+    );
+    await this.page.waitForNavigation();
     logger.info("QR Code Scanned");
   }
 
