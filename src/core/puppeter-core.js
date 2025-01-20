@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer";
 import logger from "../utils/logger.js";
 import { Helper } from "../utils/helper.js";
+import qrcode from "qrcode-terminal";
 
 export class PuppeterCore {
   constructor() {
@@ -19,23 +20,45 @@ export class PuppeterCore {
 
     this.page = await this.browser.newPage();
     this.page.setJavaScriptEnabled(true);
+    this.page.setDefaultNavigationTimeout(60000);
+    let pages = await this.browser.pages();
 
-    await this.page.goto(url, { waitUntil: "load" });
+    await pages[0].close();
+    await this.page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+    );
+    await this.page.setViewport({
+      width: 1280, // Screen width
+      height: 720, // Screen height
+    });
+    await this.page.goto(url, { waitUntil: ["load", "networkidle2"] });
+    logger.info(`Waiting For Discord QR Code`);
+    const qrCodeSelector =
+      "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']"; // Use a generic selector for dynamic classes
+    await this.page.waitForSelector(qrCodeSelector);
+    logger.info(`QR Code Found`);
 
-    const email = process.env.DISCORD_EMAIL;
-    const password = process.env.DISCORD_PASSWORD;
+    const qrCodeData = await this.page.evaluate((selector) => {
+      const qrCodeElement = document.querySelector(selector);
+      if (qrCodeElement) {
+        const svg = qrCodeElement.innerHTML;
+        const base64 = btoa(unescape(svg));
+        const qrcode = "data:image/svg+xml;base64," + base64;
+        return qrcode;
+      }
+      return null;
+    }, "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_'] svg path");
 
-    if (!email || !password) {
-      logger.error("Email or password not found in environment variables");
-      throw new Error("Missing email or password in environment variables");
+    if (qrCodeData) {
+      logger.info("QR Code found! Displaying in terminal:");
+      qrcode.generate(qrCodeData);
+    } else {
+      logger.error("QR Code not found on the page.");
     }
 
-    await this.page.type('input[name="email"]', email);
-    await this.page.type('input[name="password"]', password);
-    logger.info("Try to login using Provided Email & Password");
-    await this.page.click('button[type="submit"]');
+    logger.info("Waiting Qr Code Scanned");
     await this.page.waitForNavigation();
-    logger.info("Login successful, cookies saved");
+    logger.info("QR Code Scanned");
   }
 
   async initializingChat() {
