@@ -1,0 +1,27 @@
+{
+  "name": "discord-auto-chat",
+  "version": "1.0.0",
+  "description": "Discord Auto Chat",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Widiskel/discord-auto-chat"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "discord",
+    "autochat",
+    "discord-grinding",
+    "discord-bot"
+  ],
+  "author": "Widiskel",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "puppeteer": "^24.1.0",
+    "winston": "^3.17.0"
+  }
+}
