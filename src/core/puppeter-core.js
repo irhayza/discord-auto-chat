@@ -82,7 +82,7 @@ export class PuppeterCore {
     }
 
     logger.info("Waiting Qr Code Scanned");
-    await this.page.waitForNavigation();
+    await this.page.waitForRequest();
     logger.info("QR Code Scanned");
   }
 
