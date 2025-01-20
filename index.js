@@ -16,6 +16,7 @@ async function operation() {
   } catch (error) {
     logger.info(error);
     await Helper.delay(5000);
+    await puppeter.closeBrowser();
     await operation();
   }
 }
