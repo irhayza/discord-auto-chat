@@ -2,6 +2,7 @@ import puppeteer from "puppeteer";
 import logger from "../utils/logger.js";
 import { Helper } from "../utils/helper.js";
 import qrcode from "qrcode-terminal";
+import clipboardy from "clipboardy";
 
 export class PuppeterCore {
   constructor() {
@@ -28,16 +29,14 @@ export class PuppeterCore {
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
     );
     await this.page.setViewport({
-      width: 1280, // Screen width
-      height: 720, // Screen height
+      width: 1280,
+      height: 720,
     });
     await this.page.goto(url, { waitUntil: ["load", "networkidle2"] });
     logger.info(`Waiting For Discord QR Code`);
     const qrCodeSelector =
       "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']"; // Use a generic selector for dynamic classes
     await this.page.waitForSelector(qrCodeSelector);
-    logger.info(`QR Code Found`);
-
     const qrCodeData = await this.page.evaluate((selector) => {
       const qrCodeElement = document.querySelector(selector);
       if (qrCodeElement) {
@@ -47,13 +46,39 @@ export class PuppeterCore {
         return qrcode;
       }
       return null;
-    }, "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_'] svg path");
+    }, "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']");
 
-    if (qrCodeData) {
-      logger.info("QR Code found! Displaying in terminal:");
-      qrcode.generate(qrCodeData);
+    logger.info("QR Code found!");
+
+    const pageQRParser = await this.browser.newPage();
+    await pageQRParser.goto("https://qrcode-parser.netlify.app/", {
+      waitUntil: ["load", "networkidle0"],
+    });
+    await pageQRParser.evaluate((externalVar) => {
+      document.querySelector("#image-base64").value = externalVar;
+      return null;
+    }, qrCodeData);
+
+    await pageQRParser.click("#parse-image-base64");
+    await this.page.waitForNetworkIdle();
+    const qrValue = await pageQRParser.evaluate(async () => {
+      return await new Promise((resolve) => {
+        resolve(document.querySelector("#content2").innerHTML);
+      });
+    });
+
+    if (qrValue) {
+      logger.info("QR Code and Parsed! Displaying in terminal:");
+      await pageQRParser.close();
+      qrcode.generate(qrValue, {
+        small: false,
+      });
     } else {
-      logger.error("QR Code not found on the page.");
+      logger.error("QR Code found but parse Error");
+      clipboardy.writeSync(qrCodeData);
+      logger.error(
+        "QR Code Coppied to clippboard, go to your browser and Paste Copied QR Code"
+      );
     }
 
     logger.info("Waiting Qr Code Scanned");
