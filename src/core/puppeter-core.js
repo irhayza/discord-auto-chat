@@ -33,60 +33,78 @@ export class PuppeterCore {
       height: 720,
     });
     await this.page.goto(url, { waitUntil: ["load", "networkidle2"] });
-    logger.info(`Waiting For Discord QR Code`);
-    const qrCodeSelector =
-      "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']";
-    await this.page.waitForSelector(qrCodeSelector);
-    const qrCodeData = await this.page.evaluate((selector) => {
-      const qrCodeElement = document.querySelector(selector);
-      if (qrCodeElement) {
-        const svg = qrCodeElement.innerHTML;
-        const base64 = btoa(svg);
-        const qrcode = "data:image/svg+xml;base64," + base64;
-        return qrcode;
+
+    if (process.env.USE_QR == 1) {
+      logger.info(`Waiting For Discord QR Code`);
+      const qrCodeSelector =
+        "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']";
+      await this.page.waitForSelector(qrCodeSelector);
+      const qrCodeData = await this.page.evaluate((selector) => {
+        const qrCodeElement = document.querySelector(selector);
+        if (qrCodeElement) {
+          const svg = qrCodeElement.innerHTML;
+          const base64 = btoa(svg);
+          const qrcode = "data:image/svg+xml;base64," + base64;
+          return qrcode;
+        }
+        return null;
+      }, "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']");
+
+      logger.info("QR Code found!");
+
+      const pageQRParser = await this.browser.newPage();
+      await pageQRParser.goto("https://qrcode-parser.netlify.app/", {
+        waitUntil: ["load", "networkidle0"],
+      });
+      await pageQRParser.evaluate((externalVar) => {
+        document.querySelector("#image-base64").value = externalVar;
+        return null;
+      }, qrCodeData);
+
+      await pageQRParser.click("#parse-image-base64");
+      await this.page.waitForNetworkIdle();
+      const qrValue = await pageQRParser.evaluate(async () => {
+        return await new Promise((resolve) => {
+          resolve(document.querySelector("#content2").innerHTML);
+        });
+      });
+
+      if (qrValue) {
+        logger.info("QR Code and Parsed! Displaying in terminal:");
+        logger.info(`Login URL : ${qrValue}`);
+        await pageQRParser.close();
+        qrcode.generate(qrValue, {
+          small: false,
+        });
+      } else {
+        logger.error("QR Code found but parse Error");
+        clipboardy.writeSync(qrCodeData);
+        logger.error(
+          "QR Code Coppied to clippboard, go to your browser and Paste Copied QR Code"
+        );
       }
-      return null;
-    }, "div[class^='qrCodeContainer_'] > div[class^='qrCodeContainer_']");
 
-    logger.info("QR Code found!");
-
-    const pageQRParser = await this.browser.newPage();
-    await pageQRParser.goto("https://qrcode-parser.netlify.app/", {
-      waitUntil: ["load", "networkidle0"],
-    });
-    await pageQRParser.evaluate((externalVar) => {
-      document.querySelector("#image-base64").value = externalVar;
-      return null;
-    }, qrCodeData);
-
-    await pageQRParser.click("#parse-image-base64");
-    await this.page.waitForNetworkIdle();
-    const qrValue = await pageQRParser.evaluate(async () => {
-      return await new Promise((resolve) => {
-        resolve(document.querySelector("#content2").innerHTML);
-      });
-    });
-
-    if (qrValue) {
-      logger.info("QR Code and Parsed! Displaying in terminal:");
-      logger.info(`Login URL : ${qrValue}`);
-      await pageQRParser.close();
-      qrcode.generate(qrValue, {
-        small: false,
-      });
-    } else {
-      logger.error("QR Code found but parse Error");
-      clipboardy.writeSync(qrCodeData);
-      logger.error(
-        "QR Code Coppied to clippboard, go to your browser and Paste Copied QR Code"
+      logger.info(
+        "Waiting Qr Code Scanned, If After Scan the bot not give a response, posible bot Facing Captcha Security"
       );
-    }
+      await this.page.waitForNavigation();
+      logger.info("QR Code Scanned");
+    } else {
+      const email = process.env.DISCORD_EMAIL;
+      const password = process.env.DISCORD_PASSWORD;
 
-    logger.info(
-      "Waiting Qr Code Scanned, If After Scan the bot not give a response, posible bot Facing Captcha Security"
-    );
-    await this.page.waitForNavigation();
-    logger.info("QR Code Scanned");
+      if (!email || !password) {
+        logger.error("Email or password not found in environment variables");
+        throw new Error("Missing email or password in environment variables");
+      }
+
+      await this.page.type('input[name="email"]', email);
+      await this.page.type('input[name="password"]', password);
+      logger.info("Try to login using Provided Email & Password");
+      await this.page.click('button[type="submit"]');
+      await this.page.waitForNavigation();
+      logger.info("Login successful");
+    }
   }
 
   async initializingChat() {
