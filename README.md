@@ -12,7 +12,7 @@ auto send chat on discord specific channel, good for push rank level on MEE bot 
    ```bash
    npm install
    ```
-3. configure enviroment variable
+3. configure enviroment variable, copy .env.example to .env and run
    ```bash
    nano .env
    ```
@@ -25,7 +25,7 @@ auto send chat on discord specific channel, good for push rank level on MEE bot 
    DELAY_EACH_CHAT_IN_SECONDS=70
    HEADLESS=1 for ON 0 for OFF
    ```
-4. Run Bot
+5. Run Bot
    ```bash
    npm run start
    ```
