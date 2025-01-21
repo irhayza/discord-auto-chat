@@ -18,11 +18,12 @@ auto send chat on discord specific channel, good for push rank level on MEE bot 
    ```
    environment example
    ```bash
-    DISCORD_EMAIL=YOUR@EMAIL
-    DISCORD_PASSWORD=YOURPASSWORD
-    TARGET_CHAT_CHANNEL=https://discord.com/channels/124124124124/123124124
-    DELAY_EACH_CHAT_IN_SECONDS=70
-    HEADLESS=true
+   DISCORD_EMAIL=YOUR@EMAIL
+   DISCORD_PASSWORD=YOURPASSWORD
+   USE_QR=1 for ON 0 for OFF
+   TARGET_CHAT_CHANNEL=https://discord.com/channels/123123/123123123
+   DELAY_EACH_CHAT_IN_SECONDS=70
+   HEADLESS=1 for ON 0 for OFF
    ```
 4. Run Bot
    ```bash
